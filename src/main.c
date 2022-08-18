@@ -1,19 +1,38 @@
-#include <stdio.h>
+#include "common.h"
+#include "error.h"
+#include "parser.h"
+#include "reader.h"
+#include "value.h"
 
-char *read(char *str) {
-	return str;
-}
+/*
+TODO: Keywords
+TODO: Vectors
+TODO: Hashmaps
+*/
 
-char *eval(char *str) {
-	return str;
-}
+static void _rep(char *string) {
+	ErrorTracker *errorTracker = error_tracker_create();
+	Reader *reader = reader_create();
 
-char *print(char *str) {
-	return str;
-}
+	reader_scan(reader, string, errorTracker);
+	if (!error_tracker_empty(errorTracker)) {
+		error_tracker_print(errorTracker);
+		return;
+	}
 
-char *rep(char *str) {
-	return str;
+	reader_print(reader);
+
+	Value *root = read(reader, errorTracker);
+	if (!error_tracker_empty(errorTracker)) {
+		error_tracker_print(errorTracker);
+		return;
+	}
+
+	value_print(root, false);
+	printf("\n");
+
+	reader_destroy(reader);
+	error_tracker_destroy(errorTracker);
 }
 
 static void _repl() {
@@ -21,7 +40,7 @@ static void _repl() {
 	for (;;) {
 		printf(" > ");
 		fgets(line, sizeof(line), stdin);
-		printf("%s\n", rep(line));
+		_rep(line);
 	}
 }
 
