@@ -18,7 +18,7 @@ SRC_FOLDER     := src
 
 #======================================================================================================================#
 
-CC            := gcc $(FLAGS) $(DEFS) -I $(INCLUDE_FOLDER) -L $(LIB_FOLDER)
+CC            := gcc $(FLAGS) $(DEFS) -I $(INCLUDE_FOLDER) -I $(SRC_FOLDER) -L $(LIB_FOLDER)
 MV            := mv
 RM            := rm -rf
 CP            := cp

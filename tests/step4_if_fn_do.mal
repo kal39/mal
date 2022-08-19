@@ -203,7 +203,7 @@ a
 ;=>5
 
 
-;; Testing recursive function in environment.
+;; Testing recursive function in env.
 (let* (f (fn* () x) x 3) (f))
 ;=>3
 (let* (cst (fn* (n) (if (= n 0) nil (cst (- n 1))))) (cst 1))

@@ -3,8 +3,8 @@
 
 #include "common.h"
 #include "reader.h"
-#include "value.h"
+#include "value/value.h"
 
-Value *read(Reader *reader, ErrorTracker *errorTracker);
+Value *read(Tokenizer *tokenizer);
 
 #endif

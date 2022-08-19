@@ -53,7 +53,7 @@ x
 y
 ;=>7
 
-;; Testing outer environment
+;; Testing outer env
 (def! a 4)
 ;=>4
 (let* (q 9) q)

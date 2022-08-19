@@ -1,8 +1,7 @@
 #include "parser.h"
-#include "error.h"
 
-#define PEAK() reader_peak(reader)
-#define NEXT() reader_next(reader)
+#define PEAK() tokenizer_peak(tokenizer)
+#define NEXT() tokenizer_next(tokenizer)
 
 static bool _is_digit(char c) {
 	return c >= '0' && c <= '9';
@@ -21,33 +20,38 @@ static bool _match_content(Token token, char *content) {
 	return token.length == strlen(content) && memcmp(token.start, content, token.length) == 0;
 }
 
-static Value *_read_atom(Reader *reader, ErrorTracker *errorTracker) {
+static Value *_read_atom(Tokenizer *tokenizer) {
 	Token token = NEXT();
 	if (_match_content(token, "nil")) return MAKE_NIL();
 	if (_match_content(token, "true")) return MAKE_TRUE();
 	if (_match_content(token, "false")) return MAKE_FALSE();
 	if (_is_number(token)) return MAKE_NUMBER(strtod(token.start, NULL));
-	if (token.start[0] == '\"') return MAKE_STRING(token.start + 1, token.length - 2);
-	else return MAKE_SYMBOL(token.start, token.length);
+	if (token.start[0] == '\"') return MAKE_STRING_LEN(token.start + 1, token.length - 2);
+	else return MAKE_SYMBOL_LEN(token.start, token.length);
 }
 
-static Value *_read_list(Reader *reader, ErrorTracker *errorTracker) {
+static Value *_read(Tokenizer *tokenizer);
+
+static Value *_read_list(Tokenizer *tokenizer) {
 	NEXT();
-	Value *list = MAKE_LIST();
+	Value *list = list_create();
 
 	while (PEAK().start[0] != ')') {
-		if (reader_at_end(reader)) {
-			error_tracker_add(errorTracker, ERROR_SCAN_UNTERMINATED_LIST, 0); // TODO: line info
-			break;
-		}
-		ADD_VALUE(list, read(reader, errorTracker));
+		if (tokenizer_at_end(tokenizer)) return MAKE_ERROR("unterminated list, missing ')", list);
+		list_add_value(list, _read(tokenizer));
 	}
 
 	NEXT();
 	return list;
 }
 
-Value *read(Reader *reader, ErrorTracker *errorTracker) {
-	if (reader->tokensSize == 0) return MAKE_NIL();
-	return PEAK().start[0] == '(' ? _read_list(reader, errorTracker) : _read_atom(reader, errorTracker);
+static Value *_read(Tokenizer *tokenizer) {
+	return PEAK().start[0] == '(' ? _read_list(tokenizer) : _read_atom(tokenizer);
+}
+
+Value *read(Tokenizer *tokenizer) {
+	if (tokenizer->tokensSize == 0) return MAKE_NIL();
+	Value *ast = list_create();
+	while (!tokenizer_at_end(tokenizer)) list_add_value(ast, _read(tokenizer));
+	return ast;
 }

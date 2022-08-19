@@ -101,7 +101,7 @@ b
 (quasiquote ((unquote 1) (unquote 2)))
 ;=>(1 2)
 
-;; Quasiquote and environments
+;; Quasiquote and envs
 (let* (x 0) (quasiquote (unquote x)))
 ;=>0
 

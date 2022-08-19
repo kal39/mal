@@ -1,38 +1,43 @@
 #include "common.h"
-#include "error.h"
-#include "parser.h"
-#include "reader.h"
-#include "value.h"
+#include "eval/core.h"
+#include "eval/env.h"
+#include "eval/eval.h"
+#include "read/parser.h"
+#include "read/reader.h"
+#include "value/value.h"
 
 /*
-TODO: Keywords
-TODO: Vectors
-TODO: Hashmaps
+TODO: keywords
+TODO: vectors
+TODO: hashmaps
+
+TODO: eval vectors
+TODO: eval hashmaps
 */
 
-static void _rep(char *string) {
-	ErrorTracker *errorTracker = error_tracker_create();
-	Reader *reader = reader_create();
-
-	reader_scan(reader, string, errorTracker);
-	if (!error_tracker_empty(errorTracker)) {
-		error_tracker_print(errorTracker);
-		return;
+static Value *_read(char *string) {
+	Tokenizer *tokenizer = tokenizer_create();
+	if (tokenizer_scan(tokenizer, string)) {
+		return MAKE_ERROR("Unterminated string", MAKE_NIL());
+	} else {
+		Value *ast = read(tokenizer);
+		tokenizer_destroy(tokenizer);
+		return ast;
 	}
+}
 
-	reader_print(reader);
+static Value *_eval(Value *ast) {
+	return eval(make_core(), ast);
+}
 
-	Value *root = read(reader, errorTracker);
-	if (!error_tracker_empty(errorTracker)) {
-		error_tracker_print(errorTracker);
-		return;
-	}
-
-	value_print(root, false);
+static void _print(Value *result) {
+	printf("\n = ");
+	value_print(result);
 	printf("\n");
+}
 
-	reader_destroy(reader);
-	error_tracker_destroy(errorTracker);
+static void _rep(char *string) {
+	_print(_eval(_read(string)));
 }
 
 static void _repl() {
