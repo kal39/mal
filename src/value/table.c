@@ -11,23 +11,23 @@ static unsigned int _hash(char *string) {
 	return hash;
 }
 
-static bool _string_equals(char *a, char *b) {
-	return strlen(a) == strlen(b) && memcmp(a, b, strlen(a)) == 0;
-}
-
 static Entry *_find(Table *table, char *key) {
 	for (unsigned int i = _hash(key) % table->capacity;; i = (i + 1) % table->capacity) {
 		Entry *entry = &table->entries[i];
-		if (entry->key == NULL || _string_equals(entry->key, key)) return entry;
+		if (entry->key == NULL || STRING_EQUALS(entry->key, key)) return entry;
 	}
 }
 
 static void _resize(Table *table, int newCapacity) {
-	Entry *newEntries = malloc(sizeof(Entry) * newCapacity);
-	for (int i = 0; i < newCapacity; i++) newEntries[i].key = NULL;
+	Entry *oldEntries = table->entries;
+	int oldCapacity = table->capacity;
 
-	for (int i = 0; i < table->capacity; i++) {
-		Entry *entry = &table->entries[i];
+	table->capacity = newCapacity;
+	table->entries = malloc(sizeof(Entry) * table->capacity);
+	for (int i = 0; i < table->capacity; i++) table->entries[i].key = NULL;
+
+	for (int i = 0; i < oldCapacity; i++) {
+		Entry *entry = &oldEntries[i];
 		if (entry->key != NULL) {
 			Entry *dest = _find(table, entry->key);
 			dest->key = entry->key;
@@ -35,8 +35,7 @@ static void _resize(Table *table, int newCapacity) {
 		}
 	}
 
-	table->capacity = newCapacity;
-	table->entries = newEntries;
+	free(oldEntries);
 }
 
 Table *table_create() {
@@ -53,7 +52,7 @@ void table_destroy(Table *table) {
 	free(table);
 }
 
-void table_add(Table *table, char *key, Value *value) {
+void table_set(Table *table, char *key, Value *value) {
 	if (table->size == table->capacity * TABLE_MAX_LOAD) _resize(table, table->capacity * 2);
 
 	Entry *entry = _find(table, key);
@@ -64,8 +63,10 @@ void table_add(Table *table, char *key, Value *value) {
 }
 
 Value *table_get(Table *table, char *key) {
+	// table_print(table);
+
 	Entry *entry = _find(table, key);
-	return entry == NULL ? NULL : entry->value;
+	return entry->key == NULL ? MAKE_NIL() : entry->value;
 }
 
 void table_print(Table *table) {

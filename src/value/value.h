@@ -82,6 +82,7 @@ Value *value_create_error(char *message, int messageLength, Value *value);
 Value *list_create();
 void list_add_value(Value *list, Value *value);
 int list_length(Value *list);
+Value *list_last(Value *list);
 
 void value_destroy(Value *value);
 

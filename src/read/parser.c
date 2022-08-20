@@ -1,6 +1,6 @@
 #include "parser.h"
 
-#define PEAK() tokenizer_peak(tokenizer)
+#define PEEK() tokenizer_peak(tokenizer)
 #define NEXT() tokenizer_next(tokenizer)
 
 static bool _is_digit(char c) {
@@ -36,8 +36,9 @@ static Value *_read_list(Tokenizer *tokenizer) {
 	NEXT();
 	Value *list = list_create();
 
-	while (PEAK().start[0] != ')') {
-		if (tokenizer_at_end(tokenizer)) return MAKE_ERROR("unterminated list, missing ')", list);
+	for (;;) {
+		if (IS_END_TOKEN(PEEK())) return MAKE_ERROR("unterminated list, missing ')", list);
+		if (PEEK().start[0] == ')') break;
 		list_add_value(list, _read(tokenizer));
 	}
 
@@ -46,12 +47,13 @@ static Value *_read_list(Tokenizer *tokenizer) {
 }
 
 static Value *_read(Tokenizer *tokenizer) {
-	return PEAK().start[0] == '(' ? _read_list(tokenizer) : _read_atom(tokenizer);
+	return PEEK().start[0] == '(' ? _read_list(tokenizer) : _read_atom(tokenizer);
 }
 
 Value *read(Tokenizer *tokenizer) {
-	if (tokenizer->tokensSize == 0) return MAKE_NIL();
 	Value *ast = list_create();
-	while (!tokenizer_at_end(tokenizer)) list_add_value(ast, _read(tokenizer));
+	while (!IS_END_TOKEN(PEEK())) {
+		list_add_value(ast, _read(tokenizer));
+	}
 	return ast;
 }

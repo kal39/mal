@@ -9,4 +9,6 @@
 #define PRINT_INDENT_SIZE 4
 #define PRINT_EVALUATION_STEPS
 
+#define STRING_EQUALS(a, b) (strlen(a) == strlen(b) && memcmp((a), (b), strlen(a)) == 0)
+
 #endif

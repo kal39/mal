@@ -1,24 +1,48 @@
 #include "eval.h"
 
-static Value *_eval(Env *env, Value *ast, int depth);
+static Value *_eval_ast(Env *env, Value *ast);
 
-static Value *_apply(Env *env, Value *ast, int depth) {
+static Value *_bind(Env *env, Value *list) {
+	if (list_length(list) != 2) return MAKE_ERROR("expected 2 arguments", list);
+	Value *key = FIRST(list);
+	Value *value = _eval_ast(env, FIRST(REST(list)));
+	env_set(env, key, value);
+	return value;
+}
+
+static Value *_apply(Env *env, Value *ast) {
 	switch (TYPE(ast)) {
 		case VALUE_TYPE_PAIR: {
-			Value *evaluatedList = _eval(env, ast, depth);
-			return AS_C_FUNCTION(FIRST(evaluatedList))(REST(evaluatedList));
+			if (IS_SYMBOL(FIRST(ast))) {
+				if (STRING_EQUALS(AS_SYMBOL(FIRST(ast)), "def")) {
+					return _bind(env, REST(ast));
+
+				} else if (STRING_EQUALS(AS_SYMBOL(FIRST(ast)), "let")) {
+					if (list_length(REST(ast)) < 2) return MAKE_ERROR("expected 2+ arguments", REST(ast));
+					if (!IS_LIST(FIRST(FIRST(REST(ast))))) return MAKE_ERROR("expected list", FIRST(FIRST(REST(ast))));
+
+					Env *newEnv = env_create(env);
+					ITERATE_LIST(iterator, FIRST(REST(ast))) _bind(newEnv, FIRST(iterator));
+					Value *result = eval(newEnv, REST(REST(ast)));
+					env_destroy(newEnv);
+					return result;
+				}
+			}
+
+			Value *evaluatedAst = _eval_ast(env, ast);
+			if (!IS_C_FUNCTION(FIRST(evaluatedAst))) return MAKE_ERROR("expected function", FIRST(evaluatedAst));
+			else return AS_C_FUNCTION(FIRST(evaluatedAst))(REST(evaluatedAst));
 		}
 		case VALUE_TYPE_NIL: return ast;
-		default: return _eval(env, ast, depth);
+		default: return _eval_ast(env, ast);
 	}
 }
 
-static Value *_eval(Env *env, Value *ast, int depth) {
+static Value *_eval_ast(Env *env, Value *ast) {
 	switch (TYPE(ast)) {
 		case VALUE_TYPE_PAIR: {
 			Value *appliedList = list_create();
-			ITERATE_LIST(iterator, ast)
-			list_add_value(appliedList, _apply(env, FIRST(iterator), depth));
+			ITERATE_LIST(iterator, ast) list_add_value(appliedList, _apply(env, FIRST(iterator)));
 			return appliedList;
 		}
 		case VALUE_TYPE_SYMBOL: return env_get(env, ast); break;
@@ -26,38 +50,7 @@ static Value *_eval(Env *env, Value *ast, int depth) {
 	}
 }
 
-// static Value *_eval(Env *env, Value *value, int depth) {
-// #ifdef PRINT_EVALUATION_STEPS
-// 	for (int i = 0; i < depth * PRINT_INDENT_SIZE; i++) printf(" ");
-// 	value_print(value);
-// 	printf("\n");
-// #endif
-
-// 	Value *result = value;
-// 	switch (TYPE(value)) {
-// 		case VALUE_TYPE_PAIR: {
-// 			Value *evaluatedList = list_create();
-// 			ITERATE_LIST(iterator, value)
-// 			list_add_value(evaluatedList, _eval(env, FIRST(iterator), depth + 1));
-
-// 			if (!IS_C_FUNCTION(FIRST(evaluatedList))) result = MAKE_ERROR("not a function", value);
-// 			else result = AS_C_FUNCTION(FIRST(evaluatedList))(evaluatedList);
-// 			break;
-// 		}
-// 		case VALUE_TYPE_SYMBOL: result = env_get(env, value); break;
-// 		default: break;
-// 	}
-
-// #ifdef PRINT_EVALUATION_STEPS
-// 	for (int i = 0; i < depth * PRINT_INDENT_SIZE; i++) printf(" ");
-// 	printf("= ");
-// 	value_print_depth(result, depth);
-// 	printf("\n");
-// #endif
-
-// 	return result;
-// }
-
 Value *eval(Env *env, Value *ast) {
-	return _eval(env, ast, 0);
+	return list_last(_eval_ast(env, ast));
+	// return _eval_ast(env, ast);
 }

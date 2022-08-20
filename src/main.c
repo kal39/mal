@@ -20,7 +20,13 @@ static Value *_read(char *string) {
 	if (tokenizer_scan(tokenizer, string)) {
 		return MAKE_ERROR("Unterminated string", MAKE_NIL());
 	} else {
+		printf("   TOKENS: ");
+		tokenizer_print(tokenizer);
+		printf("\n");
 		Value *ast = read(tokenizer);
+		printf("   AST:    ");
+		value_print(ast);
+		printf("\n");
 		tokenizer_destroy(tokenizer);
 		return ast;
 	}

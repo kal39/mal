@@ -1,10 +1,14 @@
 #include "reader.h"
 
-static void _token(Tokenizer *tokenizer) {
+static void _add_token(Tokenizer *tokenizer, Token token) {
 	if (tokenizer->tokensSize == tokenizer->tokensCapacity)
 		tokenizer->tokens = realloc(tokenizer->tokens, sizeof(Token) * (tokenizer->tokensCapacity *= 2));
-	tokenizer->tokens[tokenizer->tokensSize++]
-		= (Token){.start = tokenizer->startChar, .length = tokenizer->currentChar - tokenizer->startChar};
+	tokenizer->tokens[tokenizer->tokensSize++] = token;
+}
+
+static void _token(Tokenizer *tokenizer) {
+	_add_token(tokenizer,
+			   (Token){.start = tokenizer->startChar, .length = tokenizer->currentChar - tokenizer->startChar});
 	tokenizer->startChar = tokenizer->currentChar;
 }
 
@@ -83,6 +87,7 @@ static bool _read_string(Tokenizer *tokenizer) {
 		}
 	}
 
+	_add_token(tokenizer, (Token){.length = -1});
 	return stringNotTerminated;
 }
 
@@ -118,13 +123,18 @@ Token tokenizer_next(Tokenizer *tokenizer) {
 	else return tokenizer->tokens[tokenizer->currentToken];
 }
 
-bool tokenizer_at_end(Tokenizer *tokenizer) {
+bool tokenizer_current_end(Tokenizer *tokenizer) {
 	return tokenizer->currentToken == tokenizer->tokensSize - 1;
+}
+
+bool tokenizer_next_end(Tokenizer *tokenizer) {
+	return tokenizer->currentToken == tokenizer->tokensSize;
 }
 
 void tokenizer_print(Tokenizer *tokenizer) {
 	for (int i = 0; i < tokenizer->tokensSize; i++) {
-		printf("%.*s", tokenizer->tokens[i].length, tokenizer->tokens[i].start);
+		if (IS_END_TOKEN(tokenizer->tokens[i])) printf("END");
+		else printf("%.*s", tokenizer->tokens[i].length, tokenizer->tokens[i].start);
 		if (i != tokenizer->tokensSize - 1) printf(" · ");
 	}
 }

@@ -105,6 +105,13 @@ void value_destroy(Value *value) {
 	free(value);
 }
 
+Value *list_last(Value *list) {
+	Value *last;
+	for (last = list; !IS_NIL(REST(last)); last = REST(last)) {
+	}
+	return FIRST(last);
+}
+
 bool _value_print(Value *value, int depth, bool inList);
 
 void _print_error(Value *value, int depth) {

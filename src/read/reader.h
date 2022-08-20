@@ -21,6 +21,8 @@ typedef struct Tokenizer {
 	Token *tokens;
 } Tokenizer;
 
+#define IS_END_TOKEN(token) ((token).length == -1)
+
 Tokenizer *tokenizer_create();
 void tokenizer_destroy(Tokenizer *tokenizer);
 
@@ -28,7 +30,8 @@ bool tokenizer_scan(Tokenizer *tokenizer, char *source);
 
 Token tokenizer_peak(Tokenizer *tokenizer);
 Token tokenizer_next(Tokenizer *tokenizer);
-bool tokenizer_at_end(Tokenizer *tokenizer);
+bool tokenizer_current_end(Tokenizer *tokenizer);
+bool tokenizer_next_end(Tokenizer *tokenizer);
 
 void tokenizer_print(Tokenizer *tokenizer);
 
