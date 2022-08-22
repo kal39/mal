@@ -86,7 +86,7 @@ Value *list_last(Value *list);
 
 void value_destroy(Value *value);
 
-void value_print_depth(Value *value, int depth);
+void value_print_offset(Value *value, int offset);
 void value_print(Value *value);
 
 #endif

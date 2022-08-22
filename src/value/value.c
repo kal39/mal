@@ -112,14 +112,14 @@ Value *list_last(Value *list) {
 	return FIRST(last);
 }
 
-bool _value_print(Value *value, int depth, bool inList);
+bool _value_print(Value *value, int depth, int offset, bool inList);
 
-void _print_error(Value *value, int depth) {
+void _print_error(Value *value, int depth, int offset) {
 	printf("ERROR: %s at: ", AS_ERROR(value).string);
-	_value_print(AS_ERROR(value).value, depth + 1, false);
+	_value_print(AS_ERROR(value).value, depth + 1, offset, false);
 }
 
-bool _value_print(Value *value, int depth, bool inList) {
+bool _value_print(Value *value, int depth, int offset, bool inList) {
 	if (value == NULL) {
 		printf("NULL");
 		return 0;
@@ -133,15 +133,15 @@ bool _value_print(Value *value, int depth, bool inList) {
 			bool hadError = false;
 			printf("(");
 			ITERATE_LIST(iterator, value) {
-				if (_value_print(FIRST(iterator), depth + 1, true)) hadError = true;
+				if (_value_print(FIRST(iterator), depth + 1, offset, true)) hadError = true;
 				printf(!IS_NIL(REST(iterator)) ? " " : ")");
 			}
 			if (hadError) {
 				ITERATE_LIST(iterator, value) {
 					if (IS_ERROR(FIRST(iterator))) {
 						printf("\n");
-						for (int i = 0; i < depth * PRINT_INDENT_SIZE; i++) printf(" ");
-						_print_error(FIRST(iterator), depth);
+						for (int i = 0; i < depth * PRINT_INDENT_SIZE + offset; i++) printf(" ");
+						_print_error(FIRST(iterator), depth, offset);
 					}
 				}
 			}
@@ -153,16 +153,16 @@ bool _value_print(Value *value, int depth, bool inList) {
 		case VALUE_TYPE_C_FUNCTION: printf("C_FUNCTION"); return 0;
 		case VALUE_TYPE_ERROR:
 			if (inList) printf("ERROR");
-			else _print_error(value, depth);
+			else _print_error(value, depth, offset);
 			return 1;
 		default: printf("UNKNOW"); return 0;
 	}
 }
 
-void value_print_depth(Value *value, int depth) {
-	_value_print(value, depth, false);
+void value_print_offset(Value *value, int offset) {
+	_value_print(value, 0, offset, false);
 }
 
 void value_print(Value *value) {
-	value_print_depth(value, 0);
+	value_print_offset(value, 0);
 }

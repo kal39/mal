@@ -1,7 +1,7 @@
 #include "parser.h"
 
-#define PEEK() tokenizer_peak(tokenizer)
-#define NEXT() tokenizer_next(tokenizer)
+#define PEEK() scanner_peak(scanner)
+#define NEXT() scanner_next(scanner)
 
 static bool _is_digit(char c) {
 	return c >= '0' && c <= '9';
@@ -20,7 +20,7 @@ static bool _match_content(Token token, char *content) {
 	return token.length == strlen(content) && memcmp(token.start, content, token.length) == 0;
 }
 
-static Value *_read_atom(Tokenizer *tokenizer) {
+static Value *_read_atom(Scanner *scanner) {
 	Token token = NEXT();
 	if (_match_content(token, "nil")) return MAKE_NIL();
 	if (_match_content(token, "true")) return MAKE_TRUE();
@@ -30,30 +30,30 @@ static Value *_read_atom(Tokenizer *tokenizer) {
 	else return MAKE_SYMBOL_LEN(token.start, token.length);
 }
 
-static Value *_read(Tokenizer *tokenizer);
+static Value *_parse(Scanner *scanner);
 
-static Value *_read_list(Tokenizer *tokenizer) {
+static Value *_read_list(Scanner *scanner) {
 	NEXT();
 	Value *list = list_create();
 
 	for (;;) {
 		if (IS_END_TOKEN(PEEK())) return MAKE_ERROR("unterminated list, missing ')", list);
 		if (PEEK().start[0] == ')') break;
-		list_add_value(list, _read(tokenizer));
+		list_add_value(list, _parse(scanner));
 	}
 
 	NEXT();
 	return list;
 }
 
-static Value *_read(Tokenizer *tokenizer) {
-	return PEEK().start[0] == '(' ? _read_list(tokenizer) : _read_atom(tokenizer);
+static Value *_parse(Scanner *scanner) {
+	return PEEK().start[0] == '(' ? _read_list(scanner) : _read_atom(scanner);
 }
 
-Value *read(Tokenizer *tokenizer) {
+Value *parse(Scanner *scanner) {
 	Value *ast = list_create();
 	while (!IS_END_TOKEN(PEEK())) {
-		list_add_value(ast, _read(tokenizer));
+		list_add_value(ast, _parse(scanner));
 	}
 	return ast;
 }

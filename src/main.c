@@ -3,7 +3,7 @@
 #include "eval/env.h"
 #include "eval/eval.h"
 #include "read/parser.h"
-#include "read/reader.h"
+#include "read/scanner.h"
 #include "value/value.h"
 
 /*
@@ -15,44 +15,49 @@ TODO: eval vectors
 TODO: eval hashmaps
 */
 
-static Value *_read(char *string) {
-	Tokenizer *tokenizer = tokenizer_create();
-	if (tokenizer_scan(tokenizer, string)) {
-		return MAKE_ERROR("Unterminated string", MAKE_NIL());
-	} else {
-		printf("   TOKENS: ");
-		tokenizer_print(tokenizer);
+static Value *_read_string(char *string) {
+	Scanner *scanner = scanner_create(string);
+	if (scanner == NULL) return MAKE_ERROR("Unterminated string", MAKE_NIL());
+
+	// printf("   tokens:\n     ");
+	// scanner_print(scanner);
+	// printf("\n");
+
+	Value *asts = parse(scanner);
+
+	// printf("   ASTs:\n     ");
+	// ITERATE_LIST(iterator, asts) {
+	// 	value_print(FIRST(iterator));
+	// 	printf("\n     ");
+	// }
+
+	scanner_destroy(scanner);
+	return asts;
+}
+
+static void _rep(Env *core, char *string) {
+	Value *asts = _read_string(string);
+
+	ITERATE_LIST(iterator, asts) {
+		printf("\n = ");
+		value_print_offset(eval(core, FIRST(iterator)), 3);
 		printf("\n");
-		Value *ast = read(tokenizer);
-		printf("   AST:    ");
-		value_print(ast);
-		printf("\n");
-		tokenizer_destroy(tokenizer);
-		return ast;
 	}
-}
 
-static Value *_eval(Value *ast) {
-	return eval(make_core(), ast);
-}
-
-static void _print(Value *result) {
-	printf("\n = ");
-	value_print(result);
-	printf("\n");
-}
-
-static void _rep(char *string) {
-	_print(_eval(_read(string)));
+	// value_destroy(asts);
 }
 
 static void _repl() {
+	Env *core = make_core();
+
 	char line[1024];
 	for (;;) {
 		printf(" > ");
 		fgets(line, sizeof(line), stdin);
-		_rep(line);
+		_rep(core, line);
 	}
+
+	env_destroy(core);
 }
 
 int main(void) {

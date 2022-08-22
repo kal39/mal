@@ -18,12 +18,12 @@ static Value *_apply(Env *env, Value *ast) {
 					return _bind(env, REST(ast));
 
 				} else if (STRING_EQUALS(AS_SYMBOL(FIRST(ast)), "let")) {
-					if (list_length(REST(ast)) < 2) return MAKE_ERROR("expected 2+ arguments", REST(ast));
+					if (list_length(REST(ast)) != 2) return MAKE_ERROR("expected 2 arguments", REST(ast));
 					if (!IS_LIST(FIRST(FIRST(REST(ast))))) return MAKE_ERROR("expected list", FIRST(FIRST(REST(ast))));
 
 					Env *newEnv = env_create(env);
 					ITERATE_LIST(iterator, FIRST(REST(ast))) _bind(newEnv, FIRST(iterator));
-					Value *result = eval(newEnv, REST(REST(ast)));
+					Value *result = _eval_ast(newEnv, FIRST(REST(REST(ast))));
 					env_destroy(newEnv);
 					return result;
 				}
@@ -51,6 +51,5 @@ static Value *_eval_ast(Env *env, Value *ast) {
 }
 
 Value *eval(Env *env, Value *ast) {
-	return list_last(_eval_ast(env, ast));
-	// return _eval_ast(env, ast);
+	return _apply(env, ast);
 }

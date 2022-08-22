@@ -2,9 +2,9 @@
 #define PARSER_H
 
 #include "common.h"
-#include "reader.h"
+#include "scanner.h"
 #include "value/value.h"
 
-Value *read(Tokenizer *tokenizer);
+Value *parse(Scanner *scanner);
 
 #endif
