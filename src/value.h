@@ -39,6 +39,7 @@ typedef struct Value {
 		Value *(*cFunction)(Value *args);
 		struct {
 			char *string;
+			Value *expression;
 			Value *value;
 		} error;
 	} as;
@@ -63,7 +64,7 @@ typedef struct Value {
 #define MAKE_SYMBOL_LEN(symbol, symbolLength) value_create_string_type(VALUE_TYPE_SYMBOL, symbol, symbolLength)
 #define MAKE_STRING(string) value_create_string_type(VALUE_TYPE_STRING, string, strlen(string))
 #define MAKE_STRING_LEN(string, stringLength) value_create_string_type(VALUE_TYPE_STRING, string, stringLength)
-#define MAKE_ERROR(message, value) value_create_error(message, strlen(message), value)
+#define MAKE_ERROR(message, expression, value) value_create_error(message, strlen(message), expression, value)
 
 #define IS_NIL(value) (TYPE(value) == VALUE_TYPE_NIL)
 #define IS_TRUE(value) (TYPE(value) == VALUE_TYPE_TRUE)
@@ -108,7 +109,7 @@ Value *value_create_number(double number);
 Value *value_create_string_type(ValueType type, char *string, int stringLength);
 Value *value_create_function(Env *env, Value *args, Value *body);
 Value *value_create_c_function(Value *(*cFunction)(Value *args));
-Value *value_create_error(char *message, int messageLength, Value *value);
+Value *value_create_error(char *message, int messageLength, Value *expression, Value *value);
 
 Value *list_create();
 void list_add_value(Value *list, Value *value);

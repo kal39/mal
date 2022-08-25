@@ -1,74 +1,65 @@
 #include "print.h"
 #include "common.h"
 
-bool _value_print(Value *value, int depth, int offset, bool inList, bool debugMode);
+// bool _value_print(Value *value, int depth, int offset, bool inList);
 
-void _print_error(Value *value, int depth, int offset, bool debugMode) {
-	printf("ERROR: %s at: ", AS_ERROR(value).string);
-	_value_print(AS_ERROR(value).value, depth + 1, offset, false, debugMode);
-}
+// void _print_error(Value *value, int depth, int offset) {
+// 	printf("ERROR: %s at: ", AS_ERROR(value).string);
+// 	_value_print(AS_ERROR(value).value, depth + 1, offset, false);
+// }
 
 // TODO: handle pairs
-bool _value_print(Value *value, int depth, int offset, bool inList, bool debugMode) {
+void _value_print(Value *value, Value *error, int *charsPrinted, int *errorAt) {
 	if (value == NULL) {
-		printf("NULL");
-		return 0;
+		*charsPrinted += printf("NULL");
+		return;
 	}
 
+	if (value == error) *errorAt = *charsPrinted;
+
 	switch (TYPE(value)) {
-		case VALUE_TYPE_NIL: printf("nil"); return 0;
-		case VALUE_TYPE_TRUE: printf("true"); return 0;
-		case VALUE_TYPE_FALSE: printf("false"); return 0;
-		case VALUE_TYPE_DEF: printf("def"); return 0;
-		case VALUE_TYPE_LET: printf("let"); return 0;
-		case VALUE_TYPE_DO: printf("do"); return 0;
-		case VALUE_TYPE_IF: printf("if"); return 0;
-		case VALUE_TYPE_FN: printf("fn"); return 0;
+		case VALUE_TYPE_NIL: *charsPrinted += printf("nil"); return;
+		case VALUE_TYPE_TRUE: *charsPrinted += printf("true"); return;
+		case VALUE_TYPE_FALSE: *charsPrinted += printf("false"); return;
+		case VALUE_TYPE_DEF: *charsPrinted += printf("def"); return;
+		case VALUE_TYPE_LET: *charsPrinted += printf("let"); return;
+		case VALUE_TYPE_DO: *charsPrinted += printf("do"); return;
+		case VALUE_TYPE_IF: *charsPrinted += printf("if"); return;
+		case VALUE_TYPE_FN: *charsPrinted += printf("fn"); return;
 		case VALUE_TYPE_PAIR: {
-			bool hadError = false;
-			printf("(");
+			*charsPrinted += printf("(");
 			ITERATE_LIST(i, value) {
-				if (_value_print(FIRST(i), depth + 1, offset, true, debugMode)) hadError = true;
-				printf(!IS_NIL(REST(i)) ? " " : ")");
+				_value_print(FIRST(i), error, charsPrinted, errorAt);
+				*charsPrinted += printf(!IS_NIL(REST(i)) ? " " : ")");
 			}
-			if (hadError) {
-				ITERATE_LIST(i, value) {
-					if (IS_ERROR(FIRST(i))) {
-						printf("\n");
-						for (int i = 0; i < depth * PRINT_INDENT_SIZE + offset; i++) printf(" ");
-						_print_error(FIRST(i), depth, offset, debugMode);
-					}
-				}
-			}
-			return 0;
+			return;
 		}
-		case VALUE_TYPE_SYMBOL:
-			if (debugMode) printf("'%s'", AS_SYMBOL(value));
-			else printf("%s", AS_SYMBOL(value));
-			return 0;
-		case VALUE_TYPE_NUMBER: printf("%g", AS_NUMBER(value)); return 0;
-		case VALUE_TYPE_STRING:
-			if (debugMode) printf("\"%s\"", AS_STRING(value));
-			else printf("%s", AS_STRING(value));
-			return 0;
-		case VALUE_TYPE_FUNCTION: printf("FUNCTION"); return 0;
-		case VALUE_TYPE_C_FUNCTION: printf("C_FUNCTION"); return 0;
-		case VALUE_TYPE_ERROR:
-			if (inList) printf("ERROR");
-			else _print_error(value, depth, offset, debugMode);
-			return 1;
-		default: printf("UNKNOW"); return 0;
+		case VALUE_TYPE_SYMBOL: *charsPrinted += printf("'%s'", AS_SYMBOL(value)); return;
+		case VALUE_TYPE_NUMBER: *charsPrinted += printf("%g", AS_NUMBER(value)); return;
+		case VALUE_TYPE_STRING: *charsPrinted += printf("\"%s\"", AS_STRING(value)); return;
+		case VALUE_TYPE_FUNCTION: *charsPrinted += printf("FUNCTION"); return;
+		case VALUE_TYPE_C_FUNCTION: *charsPrinted += printf("C_FUNCTION"); return;
+		case VALUE_TYPE_ERROR: *charsPrinted += printf("ERROR"); return;
+		default: *charsPrinted += printf("UNKNOW"); return;
 	}
 }
 
 void value_print(Value *value) {
-	_value_print(value, 0, 0, false, false);
+	int charsPrinted = 0;
+	int errorAt = 0;
+	_value_print(value, NULL, &charsPrinted, &errorAt);
 }
 
-void value_print_debug(Value *value) {
-	value_print_debug_offset(value, 0);
-}
+void error_print(Value *error) {
+	int charsPrinted = 0;
+	int errorAt = 0;
 
-void value_print_debug_offset(Value *value, int offset) {
-	_value_print(value, 0, offset, false, true);
+	if (AS_ERROR(error).expression != NULL && AS_ERROR(error).value != NULL) {
+		_value_print(AS_ERROR(error).expression, AS_ERROR(error).value, &charsPrinted, &errorAt);
+		printf("\n");
+		for (int i = 0; i < errorAt; i++) printf(" ");
+		printf("^ ERROR: %s\n", AS_ERROR(error).string);
+	} else {
+		printf("ERROR: %s\n", AS_ERROR(error).string);
+	}
 }

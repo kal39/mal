@@ -74,7 +74,7 @@ void table_print(Table *table) {
 		Entry *entry = &table->entries[i];
 		if (entry->key != NULL) {
 			printf("\"%s\": ", entry->key);
-			value_print_debug(entry->value);
+			value_print(entry->value);
 			printf("\n");
 		}
 	}

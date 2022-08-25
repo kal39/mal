@@ -2,121 +2,164 @@
 #include "common.h"
 #include "print.h"
 
-#define EVAL(env, ast) _eval(env, ast, depth + 1, line)
-static Value *_eval(Env *env, Value *ast, int depth, int *line);
+#define RETURN_IF_ERROR(value)                                                                                                                       \
+	if (IS_ERROR(value)) return value
+#define EVAL(env, ast, expression) _eval(env, ast, expression, depth + 1, line)
+#define EXPECT(condition, message, expression, value)                                                                                                \
+	if (!(condition)) {                                                                                                                              \
+		result = MAKE_ERROR(message, expression, value);                                                                                             \
+		break;                                                                                                                                       \
+	}
 
-static Value *__eval(Env *env, Value *ast, int depth, int *line) {
+static Value *_eval(Env *env, Value *ast, Value *expression, int depth, int *line);
+
+static Value *_eval(Env *env, Value *ast, Value *expression, int depth, int *line) {
+#ifdef PRINT_EVALUATION_STEPS
+	*line = *line + 1;
+	int startLine = *line;
+	printf("\n");
+	for (int i = 0; i < depth; i++) printf(" ║ ");
+	value_print(ast);
+#endif
+
+	Value *result = ast;
+
 	switch (TYPE(ast)) {
 		case VALUE_TYPE_PAIR: {
 			switch (TYPE(FIRST(ast))) {
+				case VALUE_TYPE_PAIR:
+				case VALUE_TYPE_SYMBOL: {
+					Value *evaluatedAst = MAKE_LIST();
+					ITERATE_LIST(i, ast) {
+						Value *value = EVAL(env, FIRST(i), expression);
+						RETURN_IF_ERROR(value);
+						ADD_VALUE(evaluatedAst, value);
+					}
+
+					result = EVAL(env, evaluatedAst, expression);
+					RETURN_IF_ERROR(result);
+					break;
+				}
+
 				case VALUE_TYPE_DEF: {
-					if (LEN(REST(ast)) != 2) return MAKE_ERROR("expected 2 arguments", REST(ast));
+					EXPECT(LEN(REST(ast)) == 2, "expected 2 arguments", expression, REST(ast));
 					Value *key = SECOND(ast);
-					Value *value = EVAL(env, THIRD(ast));
-					env_set(env, key, value);
-					return value;
+					result = EVAL(env, THIRD(ast), expression);
+					RETURN_IF_ERROR(result);
+					env_set(env, key, result);
+					break;
 				}
 
 				case VALUE_TYPE_LET: {
-					if (LEN(REST(ast)) != 2) return MAKE_ERROR("expected 2 arguments", REST(ast));
-					if (!IS_LIST(FIRST(SECOND(ast)))) return MAKE_ERROR("expected list", FIRST(SECOND(ast)));
+					EXPECT(LEN(REST(ast)) == 2, "expected 2 arguments", expression, REST(ast));
+					EXPECT(IS_LIST(FIRST(SECOND(ast))), "expected list", expression, FIRST(SECOND(ast)));
 
 					Env *newEnv = env_create(env);
 					ITERATE_LIST(i, SECOND(ast)) {
-						if (LEN(FIRST(i)) != 2) return MAKE_ERROR("expected 2 arguments", FIRST(i));
-						env_set(env, FIRST(FIRST(i)), EVAL(env, SECOND(FIRST(i))));
+						EXPECT(LEN(FIRST(i)) == 2, "expected 2 arguments", expression, FIRST(i));
+						Value *value = EVAL(env, SECOND(FIRST(i)), expression);
+						RETURN_IF_ERROR(value);
+						env_set(env, FIRST(FIRST(i)), value);
 					}
-					Value *result = EVAL(newEnv, THIRD(ast));
+
+					result = EVAL(newEnv, THIRD(ast), expression);
+					RETURN_IF_ERROR(result);
 					env_destroy(newEnv);
-					return result;
+					break;
 				}
 
 				case VALUE_TYPE_DO: {
 					Value *results = MAKE_LIST();
-					ITERATE_LIST(i, REST(ast)) ADD_VALUE(results, EVAL(env, FIRST(i)));
-					return LAST(results);
+					ITERATE_LIST(i, REST(ast)) {
+						Value *value = EVAL(env, FIRST(i), expression);
+						RETURN_IF_ERROR(value);
+						ADD_VALUE(results, value);
+					}
+					result = LAST(results);
+					break;
 				}
 
 				case VALUE_TYPE_IF: {
-					if (LEN(REST(ast)) != 3) return MAKE_ERROR("expected 3 arguments", REST(ast));
-					Value *result = EVAL(env, SECOND(ast));
-					return EVAL(env, IS_NIL(result) || IS_FALSE(result) ? FOURTH(ast) : THIRD(ast));
+					EXPECT(LEN(REST(ast)) == 3, "expected 3 arguments", expression, REST(ast));
+					Value *condition = EVAL(env, SECOND(ast), expression);
+					RETURN_IF_ERROR(condition);
+					result = EVAL(env, IS_FALSE(condition) ? FOURTH(ast) : THIRD(ast), expression);
+					RETURN_IF_ERROR(result);
+					break;
 				}
 
 				case VALUE_TYPE_FN: {
-					if (LEN(REST(ast)) != 2) return MAKE_ERROR("expected 2 arguments", REST(ast));
-					else return MAKE_FUNCTION(env_create(env), SECOND(ast), THIRD(ast));
+					EXPECT(LEN(REST(ast)) == 2, "expected 2 arguments", expression, REST(ast));
+					result = MAKE_FUNCTION(env_create(env), SECOND(ast), THIRD(ast));
+					break;
 				}
 
-				case VALUE_TYPE_SYMBOL: {
-					Value *evaluatedAst = MAKE_LIST();
-					ITERATE_LIST(i, ast) ADD_VALUE(evaluatedAst, EVAL(env, FIRST(i)));
+				case VALUE_TYPE_FUNCTION: {
+					Value *function = FIRST(ast);
+					Value *argNames = AS_FUNCTION(function).args;
+					Value *argValues = REST(ast);
+					int argNamesLen = LEN(argNames);
+					int argValuesLen = LEN(argValues);
 
-					switch (TYPE(FIRST(evaluatedAst))) {
-						case VALUE_TYPE_FUNCTION: {
-							Value *function = FIRST(evaluatedAst);
-							Value *argNames = AS_FUNCTION(function).args;
-							Value *argValues = REST(evaluatedAst);
-							int argNamesLen = LEN(argNames);
-							int argValuesLen = LEN(argValues);
+					EXPECT(argNamesLen == argValuesLen, "incorrect argument count", expression, argValues);
+					Env *funEnv = env_create(AS_FUNCTION(function).outer);
 
-							if (argNamesLen != argValuesLen) return MAKE_ERROR("incorrect argument count", argValues);
-
-							Env *funEnv = env_create(AS_FUNCTION(function).outer);
-
-							for (int i = 0; i < LEN(argValues) + 1; i++) {
-								env_set(funEnv, FIRST(argNames), FIRST(argValues));
-								argNames = REST(argNames);
-								argValues = REST(argValues);
-							}
-
-							return EVAL(funEnv, AS_FUNCTION(function).body);
-						}
-
-						case VALUE_TYPE_C_FUNCTION: return AS_C_FUNCTION(FIRST(evaluatedAst))(REST(evaluatedAst));
-						default: return MAKE_ERROR("expected function", FIRST(evaluatedAst));
+					for (int i = 0; i < LEN(argValues) + 1; i++) {
+						env_set(funEnv, FIRST(argNames), FIRST(argValues));
+						argNames = REST(argNames);
+						argValues = REST(argValues);
 					}
+
+					result = EVAL(funEnv, AS_FUNCTION(function).body, AS_FUNCTION(function).body);
+					RETURN_IF_ERROR(result);
+					break;
 				}
 
-				default: return MAKE_ERROR("expected function", FIRST(ast));
+				case VALUE_TYPE_C_FUNCTION: {
+					result = AS_C_FUNCTION(FIRST(ast))(REST(ast));
+					if (IS_ERROR(result)) {
+						value_print(FIRST(ast));
+						if (AS_ERROR(result).value == NULL) AS_ERROR(result).value = FIRST(ast);
+						AS_ERROR(result).expression = expression;
+						return result;
+					}
+					break;
+				}
+
+				default: result = MAKE_ERROR("expected function", expression, FIRST(ast)); break;
 			}
+			break;
 		}
-		case VALUE_TYPE_SYMBOL: return env_get(env, ast);
-		default: return ast;
+		case VALUE_TYPE_SYMBOL: {
+			result = env_get(env, ast);
+			if (IS_ERROR(result)) {
+				AS_ERROR(result).expression = expression;
+				return result;
+			}
+			break;
+		}
+		default: break;
 	}
-}
-
-static Value *_eval(Env *env, Value *ast, int depth, int *line) {
-#ifdef PRINT_EVALUATION_STEPS
-	*line = *line + 1;
-	int startLine = *line;
-
-	printf("\n");
-	for (int i = 0; i < depth; i++) printf(" ║ ");
-	value_print_debug_offset(ast, depth * 3);
-#endif
-
-	Value *ret = __eval(env, ast, depth, line);
 
 #ifdef PRINT_EVALUATION_STEPS
 	if (*line == startLine) {
 		printf(" ═ ");
-		value_print_debug_offset(ret, depth * 4 + 2);
+		value_print(result);
 	} else {
 		*line = *line + 1;
 		printf("\n");
 		for (int i = 0; i < depth; i++) printf(" ║ ");
 		printf(" ╚═ ");
-		value_print_debug_offset(ret, depth * 3 + 4);
+		value_print(result);
 	}
 #endif
 
-	return ret;
+	return result;
 }
 
 Value *eval(Env *env, Value *ast) {
 	int line = 0;
-	Value *result = _eval(env, ast, 0, &line);
+	Value *result = _eval(env, ast, ast, 0, &line);
 #ifdef PRINT_EVALUATION_STEPS
 	printf("\n");
 #endif

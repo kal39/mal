@@ -43,7 +43,7 @@ static Value *_read_list(Scanner *scanner) {
 	Value *list = MAKE_LIST();
 
 	for (;;) {
-		if (IS_END_TOKEN(PEEK())) return MAKE_ERROR("unterminated list, missing ')", list);
+		if (IS_END_TOKEN(PEEK())) return MAKE_ERROR("unterminated list, missing ')", NULL, list);
 		if (PEEK().start[0] == ')') break;
 		ADD_VALUE(list, _parse(scanner));
 	}
@@ -58,8 +58,6 @@ static Value *_parse(Scanner *scanner) {
 
 Value *parse(Scanner *scanner) {
 	Value *ast = MAKE_LIST();
-	while (!IS_END_TOKEN(PEEK())) {
-		ADD_VALUE(ast, _parse(scanner));
-	}
+	while (!IS_END_TOKEN(PEEK())) ADD_VALUE(ast, _parse(scanner));
 	return ast;
 }

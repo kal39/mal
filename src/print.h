@@ -4,7 +4,6 @@
 #include "value.h"
 
 void value_print(Value *value);
-void value_print_debug_offset(Value *value, int offset);
-void value_print_debug(Value *value);
+void error_print(Value *error);
 
 #endif

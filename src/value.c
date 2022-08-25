@@ -68,10 +68,11 @@ Value *value_create_c_function(Value *(*cFunction)(Value *args)) {
 	return value;
 }
 
-Value *value_create_error(char *message, int messageLength, Value *errorValue) {
-	Value *value = value_create_string_type(VALUE_TYPE_ERROR, message, messageLength);
-	AS_ERROR(value).value = errorValue;
-	return value;
+Value *value_create_error(char *message, int messageLength, Value *expression, Value *value) {
+	Value *ret = value_create_string_type(VALUE_TYPE_ERROR, message, messageLength);
+	AS_ERROR(ret).value = value;
+	AS_ERROR(ret).expression = expression;
+	return ret;
 }
 
 Value *list_create() {

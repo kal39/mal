@@ -16,7 +16,7 @@ TODO: variadic func parameters
 
 static Value *_read_string(char *string) {
 	Scanner *scanner = scanner_create(string);
-	if (scanner == NULL) return MAKE_ERROR("Unterminated string", MAKE_NIL());
+	if (scanner == NULL) return MAKE_ERROR("Unterminated string", NULL, NULL);
 
 	Value *asts = parse(scanner);
 
@@ -29,8 +29,13 @@ static void _rep(Env *core, char *string) {
 
 	ITERATE_LIST(i, asts) {
 		Value *result = eval(core, FIRST(i));
-		printf("\n = ");
-		value_print_debug_offset(result, 3);
+		if (IS_ERROR(result)) {
+			printf("\n");
+			error_print(result);
+		} else {
+			printf("\n = ");
+			value_print(result);
+		}
 		printf("\n");
 	}
 }

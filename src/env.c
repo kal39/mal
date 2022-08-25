@@ -21,7 +21,7 @@ void env_set(Env *env, Value *key, Value *value) {
 Value *env_get(Env *env, Value *key) {
 	if (!IS_SYMBOL(key)) return NULL;
 	Value *value = table_get(env->table, AS_STRING(key));
-	return IS_NIL(value) ? env->outer == NULL ? MAKE_ERROR("symbol not found", key) : env_get(env->outer, key) : value;
+	return IS_NIL(value) ? env->outer == NULL ? MAKE_ERROR("symbol not found", NULL, key) : env_get(env->outer, key) : value;
 }
 
 void env_print(Env *env) {
