@@ -1,8 +1,7 @@
-#ifndef ENVIRONMENT_H
-#define ENVIRONMENT_H
+#ifndef ENV_H
+#define ENV_H
 
-#include "common.h"
-#include "value/table.h"
+#include "table.h"
 
 typedef struct Env Env;
 typedef struct Env {
@@ -15,5 +14,6 @@ void env_destroy(Env *env);
 
 void env_set(Env *env, Value *key, Value *value);
 Value *env_get(Env *env, Value *key);
+void env_print(Env *env);
 
 #endif

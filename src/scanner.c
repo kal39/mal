@@ -1,8 +1,8 @@
 #include "scanner.h"
+#include "common.h"
 
 static void _add_token(Scanner *scanner, Token token) {
-	if (scanner->tokensSize == scanner->tokensCapacity)
-		scanner->tokens = realloc(scanner->tokens, sizeof(Token) * (scanner->tokensCapacity *= 2));
+	if (scanner->tokensSize == scanner->tokensCapacity) scanner->tokens = realloc(scanner->tokens, sizeof(Token) * (scanner->tokensCapacity *= 2));
 	scanner->tokens[scanner->tokensSize++] = token;
 }
 
@@ -39,11 +39,7 @@ static bool _is_special(char c) {
 		case '{':
 		case '}':
 		case '(':
-		case ')':
-		case '\'':
-		case '`':
-		case '^':
-		case '@': return true;
+		case ')': return true;
 		default: return false;
 	}
 }
@@ -80,8 +76,7 @@ static bool _read_string(Scanner *scanner) {
 			_next(scanner);
 			scanner->startChar = scanner->currentChar;
 		} else { // symbols or numbers
-			while (!_is_whitespace(_peek(scanner), &line) && !_is_special(_peek(scanner)) && !_at_end(scanner))
-				_next(scanner);
+			while (!_is_whitespace(_peek(scanner), &line) && !_is_special(_peek(scanner)) && !_at_end(scanner)) _next(scanner);
 			_token(scanner);
 		}
 	}

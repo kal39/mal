@@ -1,4 +1,5 @@
 #include "env.h"
+#include "common.h"
 
 Env *env_create(Env *outer) {
 	Env *env = malloc(sizeof(Env));
@@ -20,6 +21,11 @@ void env_set(Env *env, Value *key, Value *value) {
 Value *env_get(Env *env, Value *key) {
 	if (!IS_SYMBOL(key)) return NULL;
 	Value *value = table_get(env->table, AS_STRING(key));
-	// if(env->outer == NULL)
 	return IS_NIL(value) ? env->outer == NULL ? MAKE_ERROR("symbol not found", key) : env_get(env->outer, key) : value;
+}
+
+void env_print(Env *env) {
+	table_print(env->table);
+	printf("\n");
+	if (env->outer != NULL) env_print(env->outer);
 }

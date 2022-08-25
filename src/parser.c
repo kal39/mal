@@ -1,4 +1,5 @@
 #include "parser.h"
+#include "common.h"
 
 #define PEEK() scanner_peak(scanner)
 #define NEXT() scanner_next(scanner)
@@ -25,6 +26,11 @@ static Value *_read_atom(Scanner *scanner) {
 	if (_match_content(token, "nil")) return MAKE_NIL();
 	if (_match_content(token, "true")) return MAKE_TRUE();
 	if (_match_content(token, "false")) return MAKE_FALSE();
+	if (_match_content(token, "def")) return MAKE_DEF();
+	if (_match_content(token, "let")) return MAKE_LET();
+	if (_match_content(token, "do")) return MAKE_DO();
+	if (_match_content(token, "if")) return MAKE_IF();
+	if (_match_content(token, "fn")) return MAKE_FN();
 	if (_is_number(token)) return MAKE_NUMBER(strtod(token.start, NULL));
 	if (token.start[0] == '\"') return MAKE_STRING_LEN(token.start + 1, token.length - 2);
 	else return MAKE_SYMBOL_LEN(token.start, token.length);
@@ -34,12 +40,12 @@ static Value *_parse(Scanner *scanner);
 
 static Value *_read_list(Scanner *scanner) {
 	NEXT();
-	Value *list = list_create();
+	Value *list = MAKE_LIST();
 
 	for (;;) {
 		if (IS_END_TOKEN(PEEK())) return MAKE_ERROR("unterminated list, missing ')", list);
 		if (PEEK().start[0] == ')') break;
-		list_add_value(list, _parse(scanner));
+		ADD_VALUE(list, _parse(scanner));
 	}
 
 	NEXT();
@@ -51,9 +57,9 @@ static Value *_parse(Scanner *scanner) {
 }
 
 Value *parse(Scanner *scanner) {
-	Value *ast = list_create();
+	Value *ast = MAKE_LIST();
 	while (!IS_END_TOKEN(PEEK())) {
-		list_add_value(ast, _parse(scanner));
+		ADD_VALUE(ast, _parse(scanner));
 	}
 	return ast;
 }

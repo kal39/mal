@@ -2,7 +2,6 @@
 #define READER_H
 
 #include "common.h"
-#include "value/value.h"
 
 typedef struct Token {
 	char *start;

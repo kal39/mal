@@ -6,7 +6,7 @@
 
 EXECUTABLE     := mal
 LIBS           := 
-FLAGS          := -Wall -Wno-missing-braces
+FLAGS          := -Wall -Wno-missing-braces -g
 DEFS           := 
 
 #---- PROJECT STRUCTURE -----------------------------------------------------------------------------------------------#
@@ -39,9 +39,6 @@ default: clean $(EXECUTABLE)
 
 run: clean $(EXECUTABLE)
 	./$(EXECUTABLE)
-
-debug: CC += -g
-debug: clean $(EXECUTABLE)
 
 $(BUILD_FOLDER):
 	$(MKDIR) $(BUILD_FOLDERS)

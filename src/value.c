@@ -1,4 +1,6 @@
 #include "value.h"
+#include "common.h"
+#include "env.h"
 
 Value *value_create(ValueType type) {
 	Value *value = malloc(sizeof(Value));
@@ -52,6 +54,14 @@ Value *value_create_string_type(ValueType type, char *string, int stringLength) 
 	return value;
 }
 
+Value *value_create_function(Env *outer, Value *args, Value *body) {
+	Value *value = value_create(VALUE_TYPE_FUNCTION);
+	AS_FUNCTION(value).outer = outer;
+	AS_FUNCTION(value).args = args;
+	AS_FUNCTION(value).body = body;
+	return value;
+}
+
 Value *value_create_c_function(Value *(*cFunction)(Value *args)) {
 	Value *value = value_create(VALUE_TYPE_C_FUNCTION);
 	AS_C_FUNCTION(value) = cFunction;
@@ -76,7 +86,7 @@ void list_add_value(Value *list, Value *value) {
 	} else if (IS_PAIR(list)) {
 		if (IS_NIL(REST(list))) {
 			TYPE(REST(list)) = VALUE_TYPE_PAIR;
-			FIRST(REST(list)) = value;
+			SECOND(list) = value;
 			REST(REST(list)) = MAKE_NIL();
 		} else {
 			list_add_value(REST(list), value);
@@ -86,7 +96,7 @@ void list_add_value(Value *list, Value *value) {
 
 int list_length(Value *list) {
 	int count = 0;
-	ITERATE_LIST(iterator, list) count++;
+	ITERATE_LIST(i, list) count++;
 	return count;
 }
 
@@ -99,6 +109,11 @@ void value_destroy(Value *value) {
 			break;
 		case VALUE_TYPE_SYMBOL: free(AS_SYMBOL(value)); break;
 		case VALUE_TYPE_STRING: free(AS_STRING(value)); break;
+		case VALUE_TYPE_FUNCTION:
+			env_destroy(AS_FUNCTION(value).outer);
+			value_destroy(AS_FUNCTION(value).args);
+			value_destroy(AS_FUNCTION(value).body);
+			break;
 		case VALUE_TYPE_ERROR: free(AS_ERROR(value).string); break;
 		default: break;
 	}
@@ -110,59 +125,4 @@ Value *list_last(Value *list) {
 	for (last = list; !IS_NIL(REST(last)); last = REST(last)) {
 	}
 	return FIRST(last);
-}
-
-bool _value_print(Value *value, int depth, int offset, bool inList);
-
-void _print_error(Value *value, int depth, int offset) {
-	printf("ERROR: %s at: ", AS_ERROR(value).string);
-	_value_print(AS_ERROR(value).value, depth + 1, offset, false);
-}
-
-bool _value_print(Value *value, int depth, int offset, bool inList) {
-	if (value == NULL) {
-		printf("NULL");
-		return 0;
-	}
-
-	switch (TYPE(value)) {
-		case VALUE_TYPE_NIL: printf("nil"); return 0;
-		case VALUE_TYPE_TRUE: printf("true"); return 0;
-		case VALUE_TYPE_FALSE: printf("false"); return 0;
-		case VALUE_TYPE_PAIR: {
-			bool hadError = false;
-			printf("(");
-			ITERATE_LIST(iterator, value) {
-				if (_value_print(FIRST(iterator), depth + 1, offset, true)) hadError = true;
-				printf(!IS_NIL(REST(iterator)) ? " " : ")");
-			}
-			if (hadError) {
-				ITERATE_LIST(iterator, value) {
-					if (IS_ERROR(FIRST(iterator))) {
-						printf("\n");
-						for (int i = 0; i < depth * PRINT_INDENT_SIZE + offset; i++) printf(" ");
-						_print_error(FIRST(iterator), depth, offset);
-					}
-				}
-			}
-			return 0;
-		}
-		case VALUE_TYPE_SYMBOL: printf("'%s'", AS_SYMBOL(value)); return 0;
-		case VALUE_TYPE_NUMBER: printf("%f", AS_NUMBER(value)); return 0;
-		case VALUE_TYPE_STRING: printf("\"%s\"", AS_STRING(value)); return 0;
-		case VALUE_TYPE_C_FUNCTION: printf("C_FUNCTION"); return 0;
-		case VALUE_TYPE_ERROR:
-			if (inList) printf("ERROR");
-			else _print_error(value, depth, offset);
-			return 1;
-		default: printf("UNKNOW"); return 0;
-	}
-}
-
-void value_print_offset(Value *value, int offset) {
-	_value_print(value, 0, offset, false);
-}
-
-void value_print(Value *value) {
-	value_print_offset(value, 0);
 }

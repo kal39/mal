@@ -1,7 +1,6 @@
 #ifndef TABLE_H
 #define TABLE_H
 
-#include "common.h"
 #include "value.h"
 
 // TODO: table_remove()

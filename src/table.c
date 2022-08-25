@@ -1,4 +1,6 @@
 #include "table.h"
+#include "common.h"
+#include "print.h"
 
 static unsigned int _hash(char *string) {
 	int length = strlen(string);
@@ -63,8 +65,6 @@ void table_set(Table *table, char *key, Value *value) {
 }
 
 Value *table_get(Table *table, char *key) {
-	// table_print(table);
-
 	Entry *entry = _find(table, key);
 	return entry->key == NULL ? MAKE_NIL() : entry->value;
 }
@@ -74,7 +74,7 @@ void table_print(Table *table) {
 		Entry *entry = &table->entries[i];
 		if (entry->key != NULL) {
 			printf("\"%s\": ", entry->key);
-			value_print(entry->value);
+			value_print_debug(entry->value);
 			printf("\n");
 		}
 	}
