@@ -1,13 +1,6 @@
 #include "print.h"
 #include "common.h"
 
-// bool _value_print(Value *value, int depth, int offset, bool inList);
-
-// void _print_error(Value *value, int depth, int offset) {
-// 	printf("ERROR: %s at: ", AS_ERROR(value).string);
-// 	_value_print(AS_ERROR(value).value, depth + 1, offset, false);
-// }
-
 // TODO: handle pairs
 void _value_print(Value *value, Value *error, int *charsPrinted, int *errorAt) {
 	if (value == NULL) {
@@ -26,6 +19,9 @@ void _value_print(Value *value, Value *error, int *charsPrinted, int *errorAt) {
 		case VALUE_TYPE_DO: *charsPrinted += printf("do"); return;
 		case VALUE_TYPE_IF: *charsPrinted += printf("if"); return;
 		case VALUE_TYPE_FN: *charsPrinted += printf("fn"); return;
+		case VALUE_TYPE_EVAL: *charsPrinted += printf("eval"); return;
+		case VALUE_TYPE_QUOTE: *charsPrinted += printf("quote"); return;
+		case VALUE_TYPE_IMPORT: *charsPrinted += printf("import"); return;
 		case VALUE_TYPE_PAIR: {
 			*charsPrinted += printf("(");
 			ITERATE_LIST(i, value) {
@@ -40,7 +36,6 @@ void _value_print(Value *value, Value *error, int *charsPrinted, int *errorAt) {
 		case VALUE_TYPE_FUNCTION: *charsPrinted += printf("FUNCTION"); return;
 		case VALUE_TYPE_C_FUNCTION: *charsPrinted += printf("C_FUNCTION"); return;
 		case VALUE_TYPE_ERROR: *charsPrinted += printf("ERROR"); return;
-		default: *charsPrinted += printf("UNKNOW"); return;
 	}
 }
 

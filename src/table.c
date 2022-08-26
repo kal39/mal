@@ -66,7 +66,7 @@ void table_set(Table *table, char *key, Value *value) {
 
 Value *table_get(Table *table, char *key) {
 	Entry *entry = _find(table, key);
-	return entry->key == NULL ? MAKE_NIL() : entry->value;
+	return entry->key == NULL ? NULL : entry->value;
 }
 
 void table_print(Table *table) {

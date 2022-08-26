@@ -4,6 +4,7 @@
 #include "scanner.h"
 #include "value.h"
 
-Value *parse(Scanner *scanner);
+char *read_file(char *path);
+Value *parse_string(char *string);
 
 #endif

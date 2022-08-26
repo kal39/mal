@@ -31,6 +31,9 @@ static Value *_read_atom(Scanner *scanner) {
 	if (_match_content(token, "do")) return MAKE_DO();
 	if (_match_content(token, "if")) return MAKE_IF();
 	if (_match_content(token, "fn")) return MAKE_FN();
+	if (_match_content(token, "eval")) return MAKE_EVAL();
+	if (_match_content(token, "quote")) return MAKE_QUOTE();
+	if (_match_content(token, "import")) return MAKE_IMPORT();
 	if (_is_number(token)) return MAKE_NUMBER(strtod(token.start, NULL));
 	if (token.start[0] == '\"') return MAKE_STRING_LEN(token.start + 1, token.length - 2);
 	else return MAKE_SYMBOL_LEN(token.start, token.length);
@@ -56,8 +59,30 @@ static Value *_parse(Scanner *scanner) {
 	return PEEK().start[0] == '(' ? _read_list(scanner) : _read_atom(scanner);
 }
 
-Value *parse(Scanner *scanner) {
-	Value *ast = MAKE_LIST();
-	while (!IS_END_TOKEN(PEEK())) ADD_VALUE(ast, _parse(scanner));
-	return ast;
+char *read_file(char *path) {
+	FILE *fp = fopen(path, "rb");
+
+	if (fp == NULL) return NULL;
+
+	fseek(fp, 0L, SEEK_END);
+	size_t fileSize = ftell(fp);
+	rewind(fp);
+
+	char *buff = (char *)malloc(fileSize + 1);
+	fread(buff, sizeof(char), fileSize, fp);
+	buff[fileSize] = '\0';
+
+	fclose(fp);
+	return buff;
+}
+
+Value *parse_string(char *string) {
+	Scanner *scanner = scanner_create(string);
+	if (scanner == NULL) return MAKE_ERROR("Unterminated string", NULL, NULL);
+
+	Value *asts = MAKE_LIST();
+	while (!IS_END_TOKEN(PEEK())) ADD_VALUE(asts, _parse(scanner));
+
+	scanner_destroy(scanner);
+	return asts;
 }

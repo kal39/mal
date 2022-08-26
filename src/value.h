@@ -10,6 +10,9 @@ typedef enum ValueType {
 	VALUE_TYPE_DO,
 	VALUE_TYPE_IF,
 	VALUE_TYPE_FN,
+	VALUE_TYPE_EVAL,
+	VALUE_TYPE_QUOTE,
+	VALUE_TYPE_IMPORT,
 	VALUE_TYPE_PAIR,
 	VALUE_TYPE_SYMBOL,
 	VALUE_TYPE_NUMBER,
@@ -55,9 +58,12 @@ typedef struct Value {
 #define MAKE_DO() value_create(VALUE_TYPE_DO)
 #define MAKE_IF() value_create(VALUE_TYPE_IF)
 #define MAKE_FN() value_create(VALUE_TYPE_FN)
+#define MAKE_EVAL() value_create(VALUE_TYPE_EVAL)
+#define MAKE_QUOTE() value_create(VALUE_TYPE_QUOTE)
+#define MAKE_IMPORT() value_create(VALUE_TYPE_IMPORT)
 #define MAKE_PAIR(first, rest) value_create_pair(first, rest)
 #define MAKE_NUMBER(number) value_create_number(number)
-#define MAKE_FUNCTION(outer, args, body) value_create_function(env, args, body)
+#define MAKE_FUNCTION(env, args, body) value_create_function(env, args, body)
 #define MAKE_C_FUNCTION(function) value_create_c_function(function)
 
 #define MAKE_SYMBOL(symbol) value_create_string_type(VALUE_TYPE_SYMBOL, symbol, strlen(symbol))
@@ -69,11 +75,14 @@ typedef struct Value {
 #define IS_NIL(value) (TYPE(value) == VALUE_TYPE_NIL)
 #define IS_TRUE(value) (TYPE(value) == VALUE_TYPE_TRUE)
 #define IS_FALSE(value) (TYPE(value) == VALUE_TYPE_FALSE)
-#define IS_DEF(value) TYPE(TYPE(value) == VALUE_TYPE_DEF)
-#define IS_LET(value) TYPE(TYPE(value) == VALUE_TYPE_LET)
-#define IS_DO(value) TYPE(TYPE(value) == VALUE_TYPE_DO)
-#define IS_IF(value) TYPE(TYPE(value) == VALUE_TYPE_IF)
-#define IS_FN(value) TYPE(TYPE(value) == VALUE_TYPE_FN)
+#define IS_DEF(value) (TYPE(value) == VALUE_TYPE_DEF)
+#define IS_LET(value) (TYPE(value) == VALUE_TYPE_LET)
+#define IS_DO(value) (TYPE(value) == VALUE_TYPE_DO)
+#define IS_IF(value) (TYPE(value) == VALUE_TYPE_IF)
+#define IS_FN(value) (TYPE(value) == VALUE_TYPE_FN)
+#define IS_EVAL(value) (TYPE(value) == VALUE_TYPE_EVAL)
+#define IS_QUOTE(value) (TYPE(value) == VALUE_TYPE_QUOTE)
+#define IS_IMPORT(value) (TYPE(value) == VALUE_TYPE_IMPORT)
 #define IS_PAIR(value) (TYPE(value) == VALUE_TYPE_PAIR)
 #define IS_SYMBOL(value) (TYPE(value) == VALUE_TYPE_SYMBOL)
 #define IS_NUMBER(value) (TYPE(value) == VALUE_TYPE_NUMBER)

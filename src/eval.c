@@ -42,24 +42,27 @@ static Value *_eval(Env *env, Value *ast, Value *expression, int depth, int *lin
 				}
 
 				case VALUE_TYPE_DEF: {
-					EXPECT(LEN(REST(ast)) == 2, "expected 2 arguments", expression, REST(ast));
-					Value *key = SECOND(ast);
-					result = EVAL(env, THIRD(ast), expression);
-					RETURN_IF_ERROR(result);
-					env_set(env, key, result);
+					EXPECT(LEN(REST(ast)) % 2 == 0, "expected even number arguments", expression, REST(ast));
+
+					for (Value *i = REST(ast); !IS_NIL(i); i = REST(REST(i))) {
+						Value *key = FIRST(i);
+						result = EVAL(env, SECOND(i), expression);
+						RETURN_IF_ERROR(result);
+						env_set(env, key, result);
+					}
 					break;
 				}
 
 				case VALUE_TYPE_LET: {
 					EXPECT(LEN(REST(ast)) == 2, "expected 2 arguments", expression, REST(ast));
-					EXPECT(IS_LIST(FIRST(SECOND(ast))), "expected list", expression, FIRST(SECOND(ast)));
+					EXPECT(LEN(SECOND(ast)) % 2 == 0, "expected even number arguments", expression, REST(ast));
 
 					Env *newEnv = env_create(env);
-					ITERATE_LIST(i, SECOND(ast)) {
-						EXPECT(LEN(FIRST(i)) == 2, "expected 2 arguments", expression, FIRST(i));
-						Value *value = EVAL(env, SECOND(FIRST(i)), expression);
+					for (Value *i = SECOND(ast); !IS_NIL(i); i = REST(REST(i))) {
+						Value *key = FIRST(i);
+						Value *value = EVAL(env, SECOND(i), expression);
 						RETURN_IF_ERROR(value);
-						env_set(env, FIRST(FIRST(i)), value);
+						env_set(newEnv, key, value);
 					}
 
 					result = EVAL(newEnv, THIRD(ast), expression);
@@ -94,6 +97,29 @@ static Value *_eval(Env *env, Value *ast, Value *expression, int depth, int *lin
 					break;
 				}
 
+				case VALUE_TYPE_EVAL: {
+					EXPECT(LEN(REST(ast)) == 1, "expected 1 arguments", expression, REST(ast));
+					Value *value = EVAL(env, FIRST(REST(ast)), expression);
+					RETURN_IF_ERROR(value);
+					result = EVAL(env, value, value);
+					RETURN_IF_ERROR(result);
+					break;
+				}
+
+				case VALUE_TYPE_QUOTE: {
+					EXPECT(LEN(REST(ast)) == 1, "expected 1 arguments", expression, REST(ast));
+					result = REST(ast);
+					break;
+				}
+
+				case VALUE_TYPE_IMPORT: {
+					EXPECT(LEN(REST(ast)) == 1, "expected 1 arguments", expression, REST(ast));
+					EXPECT(IS_STRING(SECOND(ast)), "expected string", expression, SECOND(ast))
+					env_load_file(env, AS_STRING(SECOND(ast)));
+					result = MAKE_NIL();
+					break;
+				}
+
 				case VALUE_TYPE_FUNCTION: {
 					Value *function = FIRST(ast);
 					Value *argNames = AS_FUNCTION(function).args;
@@ -125,8 +151,12 @@ static Value *_eval(Env *env, Value *ast, Value *expression, int depth, int *lin
 					}
 					break;
 				}
-
-				default: result = MAKE_ERROR("expected function", expression, FIRST(ast)); break;
+				case VALUE_TYPE_NIL:
+				case VALUE_TYPE_TRUE:
+				case VALUE_TYPE_FALSE:
+				case VALUE_TYPE_NUMBER:
+				case VALUE_TYPE_STRING:
+				case VALUE_TYPE_ERROR: MAKE_ERROR("expected function", expression, FIRST(ast)); break;
 			}
 			break;
 		}
@@ -138,7 +168,22 @@ static Value *_eval(Env *env, Value *ast, Value *expression, int depth, int *lin
 			}
 			break;
 		}
-		default: break;
+		case VALUE_TYPE_NIL:
+		case VALUE_TYPE_TRUE:
+		case VALUE_TYPE_FALSE:
+		case VALUE_TYPE_DEF:
+		case VALUE_TYPE_LET:
+		case VALUE_TYPE_DO:
+		case VALUE_TYPE_IF:
+		case VALUE_TYPE_FN:
+		case VALUE_TYPE_EVAL:
+		case VALUE_TYPE_QUOTE:
+		case VALUE_TYPE_IMPORT:
+		case VALUE_TYPE_NUMBER:
+		case VALUE_TYPE_STRING:
+		case VALUE_TYPE_FUNCTION:
+		case VALUE_TYPE_C_FUNCTION:
+		case VALUE_TYPE_ERROR: break;
 	}
 
 #ifdef PRINT_EVALUATION_STEPS

@@ -49,7 +49,7 @@ static bool _at_end(Scanner *scanner) {
 	return scanner->atEnd;
 }
 
-static bool _read_string(Scanner *scanner) {
+static bool _parse_string(Scanner *scanner) {
 	int line = 0;
 	bool stringNotTerminated = false;
 
@@ -98,7 +98,7 @@ Scanner *scanner_create(char *source) {
 	scanner->tokensSize = 0;
 	scanner->tokens = malloc(sizeof(Token) * scanner->tokensCapacity);
 
-	if (_read_string(scanner)) {
+	if (_parse_string(scanner)) {
 		free(scanner);
 		return NULL;
 	} else {
@@ -117,7 +117,7 @@ bool scanner_scan(Scanner *scanner, char *source) {
 	scanner->tokensSize = 0;
 	scanner->tokens = malloc(sizeof(Token) * scanner->tokensCapacity);
 
-	return _read_string(scanner);
+	return _parse_string(scanner);
 }
 
 void scanner_destroy(Scanner *scanner) {
